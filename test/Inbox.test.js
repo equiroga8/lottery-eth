@@ -1,9 +1,15 @@
+require('events').EventEmitter.defaultMaxListeners = 0;
 const assert = require('assert');
 const ganache = require ('ganache-cli');
 const Web3 = require('web3'); // Higher case because it's a constructor
-const web3 = new Web3(ganache.provider());
+
+const provider = ganache.provider()
+const web3 = new Web3(provider);
+
 const { interface, bytecode } = require('../compile') 
 
+const INITIAL_MSG = 'High there!';
+const NEW_MSG = 'Bye!'
 
 let accounts;
 let inbox;
@@ -14,14 +20,25 @@ beforeEach(async () => {
 
 	// Use one of those accounts to deploy the constract
 	inbox = await new web3.eth.Contract(JSON.parse(interface))
-		.deploy({ data: bytecode, arguments: ['Hi there!']})
+		.deploy({ data: bytecode, arguments: [INITIAL_MSG]})
 		.send({ from: accounts[0], gas: '1000000'});
 });
 
 describe('Inbox', () => {
 	it('deploys a contract', () => {
-		console.log(inbox);
+		assert.ok(inbox.options.address);
 	});
+
+	it('has a default message', async () => {
+		const message = await inbox.methods.message().call(); // first set of parenthesis -> arguments, 
+		assert.equal(message, INITIAL_MSG);					  // second set -> how the function gets called
+	});
+
+	it('can change the message', async () => {
+		await inbox.methods.setMessage(NEW_MSG).send({ from: accounts[0] });
+		const message = await inbox.methods.message().call();
+		assert.equal(message, NEW_MSG);
+	})
 });
 
 
@@ -30,7 +47,7 @@ describe('Inbox', () => {
 
 
 
-// (tutorial) mocha testing framework 
+	// (tutorial) mocha testing framework 
 /*
 class Car {
 
